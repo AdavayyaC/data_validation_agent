@@ -1,0 +1,64 @@
+# Python bytecode
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables
+
+.env
+.env.*
+
+# Distribution / packaging
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+
+*.log
+
+# Unit test / coverage reports
+
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+
+# IDE / Editor folders
+
+.vscode/
+.idea/
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+
+.ipynb_checkpoints/
+
+# Python cache files
+
+*.pyo
+*.pyd
+
+# mypy / static analysis
+
+.mypy_cache/
+.pyre/
+
+# Temporary files
+
+*.tmp
+*.temp

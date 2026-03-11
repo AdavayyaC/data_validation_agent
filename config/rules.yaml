@@ -1,0 +1,103 @@
+# ============================================================
+# Regulatory Validation Rules — Financial / Banking Domain
+# Edit thresholds here WITHOUT touching any Python code
+# ============================================================
+
+schema:
+  required_fields:
+    - transaction_id
+    - account_id
+    - transaction_amount
+    - transaction_date
+    - currency
+    - transaction_type
+    - status
+    - branch_code
+    - capital_ratio
+    - approval_code
+
+  field_types:
+    transaction_id: str
+    account_id: str
+    transaction_amount: float
+    transaction_date: str
+    currency: str
+    transaction_type: str
+    status: str
+    branch_code: str
+    capital_ratio: float
+    approval_code: str
+
+thresholds:
+  # Basel III minimum capital adequacy ratio
+  capital_ratio:
+    min: 0.08
+    max: 1.0
+    severity: CRITICAL
+    regulation: "Basel III — Article 92"
+
+  # AML transaction monitoring
+  transaction_amount:
+    min: 0.01
+    max: 10000.0
+    severity: CRITICAL
+    regulation: "AML Directive 2015/849 — Article 11"
+
+  # Internal risk controls
+  risk_score:
+    min: 0.0
+    max: 100.0
+    severity: WARNING
+    regulation: "Internal Risk Policy v3.2"
+
+patterns:
+  # ISO 4217 currency codes
+  currency:
+    regex: "^[A-Z]{3}$"
+    severity: WARNING
+    regulation: "ISO 4217"
+
+  # Account ID format
+  account_id:
+    regex: "^ACC-[0-9]{6}$"
+    severity: WARNING
+    regulation: "Internal Account Format Policy"
+
+  # Branch code format
+  branch_code:
+    regex: "^BR-[0-9]{3}$"
+    severity: WARNING
+    regulation: "Internal Branch Format Policy"
+
+cross_field:
+  # If status is APPROVED, approval_code must not be empty
+  - rule: "approved_needs_code"
+    description: "Approved transactions must have an approval code"
+    condition_field: "status"
+    condition_value: "APPROVED"
+    required_field: "approval_code"
+    severity: CRITICAL
+    regulation: "Internal Approval Policy v2.1"
+
+  # transaction_type must be one of allowed values
+  - rule: "valid_transaction_type"
+    description: "Transaction type must be DEBIT, CREDIT, or TRANSFER"
+    field: "transaction_type"
+    allowed_values: ["DEBIT", "CREDIT", "TRANSFER"]
+    severity: WARNING
+    regulation: "Transaction Classification Standard"
+
+  # status must be one of allowed values
+  - rule: "valid_status"
+    description: "Status must be APPROVED, PENDING, or REJECTED"
+    field: "status"
+    allowed_values: ["APPROVED", "PENDING", "REJECTED"]
+    severity: WARNING
+    regulation: "Status Classification Standard"
+
+anomaly_detection:
+  contamination: 0.1        # Expected % of anomalies in data
+  features:
+    - transaction_amount
+    - capital_ratio
+  zscore_threshold: 3.0     # Flag if > 3 std deviations from mean
