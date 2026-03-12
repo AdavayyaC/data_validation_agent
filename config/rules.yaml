@@ -1,7 +1,8 @@
-# ============================================================
+# ================================================================
 # Regulatory Validation Rules — Financial / Banking Domain
+# Basel III | AML Directive | Internal Compliance Policies
 # Edit thresholds here WITHOUT touching any Python code
-# ============================================================
+# ================================================================
 
 schema:
   required_fields:
@@ -15,6 +16,8 @@ schema:
     - branch_code
     - capital_ratio
     - approval_code
+    - customer_risk_rating
+    - counterparty_id
 
   field_types:
     transaction_id: str
@@ -27,77 +30,111 @@ schema:
     branch_code: str
     capital_ratio: float
     approval_code: str
+    customer_risk_rating: str
+    counterparty_id: str
 
 thresholds:
-  # Basel III minimum capital adequacy ratio
   capital_ratio:
     min: 0.08
     max: 1.0
     severity: CRITICAL
-    regulation: "Basel III — Article 92"
+    regulation: "Basel III — CRR Article 92"
+    description: "Minimum capital adequacy ratio requirement"
 
-  # AML transaction monitoring
   transaction_amount:
     min: 0.01
     max: 10000.0
     severity: CRITICAL
     regulation: "AML Directive 2015/849 — Article 11"
+    description: "AML transaction monitoring threshold"
 
-  # Internal risk controls
   risk_score:
     min: 0.0
     max: 100.0
     severity: WARNING
     regulation: "Internal Risk Policy v3.2"
+    description: "Customer risk score out of valid range"
 
 patterns:
-  # ISO 4217 currency codes
   currency:
     regex: "^[A-Z]{3}$"
     severity: WARNING
-    regulation: "ISO 4217"
+    regulation: "ISO 4217 Currency Standard"
 
-  # Account ID format
   account_id:
     regex: "^ACC-[0-9]{6}$"
     severity: WARNING
-    regulation: "Internal Account Format Policy"
+    regulation: "Internal Account Format Policy v1.0"
 
-  # Branch code format
   branch_code:
     regex: "^BR-[0-9]{3}$"
     severity: WARNING
-    regulation: "Internal Branch Format Policy"
+    regulation: "Internal Branch Format Policy v1.0"
+
+  transaction_id:
+    regex: "^TXN-[0-9]{3,}$"
+    severity: WARNING
+    regulation: "Transaction ID Format Standard"
 
 cross_field:
-  # If status is APPROVED, approval_code must not be empty
   - rule: "approved_needs_code"
-    description: "Approved transactions must have an approval code"
+    description: "APPROVED transactions must carry a valid approval code"
     condition_field: "status"
     condition_value: "APPROVED"
     required_field: "approval_code"
     severity: CRITICAL
     regulation: "Internal Approval Policy v2.1"
 
-  # transaction_type must be one of allowed values
   - rule: "valid_transaction_type"
-    description: "Transaction type must be DEBIT, CREDIT, or TRANSFER"
+    description: "Transaction type must be one of the defined classifications"
     field: "transaction_type"
     allowed_values: ["DEBIT", "CREDIT", "TRANSFER"]
     severity: WARNING
-    regulation: "Transaction Classification Standard"
+    regulation: "Transaction Classification Standard v1.0"
 
-  # status must be one of allowed values
   - rule: "valid_status"
-    description: "Status must be APPROVED, PENDING, or REJECTED"
+    description: "Status must follow the defined lifecycle values"
     field: "status"
     allowed_values: ["APPROVED", "PENDING", "REJECTED"]
     severity: WARNING
-    regulation: "Status Classification Standard"
+    regulation: "Status Lifecycle Standard v1.0"
+
+  - rule: "valid_risk_rating"
+    description: "Customer risk rating must be LOW, MEDIUM, or HIGH"
+    field: "customer_risk_rating"
+    allowed_values: ["LOW", "MEDIUM", "HIGH"]
+    severity: WARNING
+    regulation: "Customer Risk Classification Policy"
+
+integrity:
+  expected_min_records: 1
+  duplicate_check_field: "transaction_id"
+  date_field: "transaction_date"
+  date_format: "%Y-%m-%d"
 
 anomaly_detection:
-  contamination: 0.1        # Expected % of anomalies in data
+  contamination: 0.1
   features:
     - transaction_amount
     - capital_ratio
-  zscore_threshold: 3.0     # Flag if > 3 std deviations from mean
+    - risk_score
+  zscore_threshold: 2.5
+
+escalation:
+  rules:
+    - condition: "critical_count >= 3"
+      level: "ESCALATED"
+      notify: "Chief Compliance Officer"
+      action: "Halt regulatory submission — immediate review required"
+    - condition: "critical_count >= 1"
+      level: "CRITICAL"
+      notify: "Compliance Manager"
+      action: "Review and remediate before submission"
+    - condition: "warning_count >= 5"
+      level: "WARNING"
+      notify: "Data Quality Team"
+      action: "Investigate and document findings"
+    - condition: "all_pass"
+      level: "CLEAR"
+      notify: "None"
+      action: "Proceed with regulatory submission"
